@@ -30,23 +30,40 @@ namespace ToDoApi.Controllers
 
         // GET: api/nfl/player/id/{id}
         [HttpGet("player/id/{id}")]
-        public async Task<Player> GetPlayerById(int id)
+        public async Task<ActionResult<Player>> GetPlayerById(int id)
         {
-            return await _toDoApiService.GetPlayerByIdAsync(id);
+            var player = await _toDoApiService.GetPlayerByIdAsync(id);
+            if (player is null || player.ID < 1)
+            {
+                return NotFound();
+            }
+            return player;
         }
 
         // GET: api/nfl/player/lastname
         [HttpGet("player/lastname/{lastName}")]
-        public async Task<List<Player>> GetPlayerByName(string lastName)
+        public async Task<ActionResult<List<Player>>> GetPlayerByName(string lastName)
         {
-            return await _toDoApiService.GetPlayerByNameAsync(lastName);
+            var players = await _toDoApiService.GetPlayerByNameAsync(lastName);
+
+            if (!players.Any())
+            {
+                return NotFound();
+            }
+            return players;
         }
 
         // GET: api/nfl/team/{teamName}/players
         [HttpGet("team/{teamName}/players")]
-        public async Task<ActionResult<IEnumerable<Player>>> GetPlayersByTeam(string teamName)
+        public async Task<ActionResult<List<Player>>> GetPlayersByTeam(string teamName)
         {
-            return await _toDoApiService.GetPlayersByTeamAsync(teamName);
+            var players = await _toDoApiService.GetPlayersByTeamAsync(teamName);
+
+            if (!players.Any())
+            {
+                return NotFound();
+            }
+            return players;
         }
 
         // GET: api/nfl/teams
@@ -60,49 +77,93 @@ namespace ToDoApi.Controllers
         [HttpGet("team/{nameOrLocation}")]
         public async Task<ActionResult<List<Team>>> GetTeamByNameOrLocation(string nameOrLocation)
         {
-            return await _toDoApiService.GetTeamByNameOrLocationAsync(nameOrLocation);
+            var teams = await _toDoApiService.GetTeamByNameOrLocationAsync(nameOrLocation);
+            if (!teams.Any())
+            {
+                return NotFound();
+            }
+            return teams;
         }
 
         // GET: api/nfl/team/id/{id}
         [HttpGet("team/id/{id}")]
         public async Task<ActionResult<Team>> GetTeamById(int id)
         {
-            return await _toDoApiService.GetTeamByIdAsync(id);
+            var team = await _toDoApiService.GetTeamByIdAsync(id);
+            if (team is null || team.ID < 1)
+            {
+                return NotFound();
+            }
+            return team;
         }
 
         //POST: api/nfl/team
        [HttpPost("team")]
         public async Task<ActionResult<Team>> CreateTeamAsync(Team team)
         {
-            return _toDoApiService.CreateTeamAsync(team);
+            var newTeam = _toDoApiService.CreateTeamAsync(team);
+
+            if(newTeam.Id ==  0)
+            {
+                var Message = "No two teams should exist with the same name and location";
+                return BadRequest(Message);
+            }
+
+            return CreatedAtAction("GetTeamByIdAsync", new { id = team.ID }, team);
         }
 
         // POST: api/nfl/player
         [HttpPost("player")]
-        public async Task<Player> CreatePlayer(Player player)
+        public async Task<ActionResult<Player>> CreatePlayer(Player player)
         {
-            return _toDoApiService.CreatePlayerAsync(player);
+            var newPlayer = _toDoApiService.CreatePlayerAsync(player);
+            if(newPlayer.Id == 0)
+            {
+                var Message = "A player already exist";
+                return BadRequest(Message);
+            }
+
+            return CreatedAtAction("GetPlayerByIdAsync", new { id = player.ID }, player);
         }
 
         // DELETE: api/nfl/player/{id}
         [HttpDelete("player/{id}")]
         public async Task<IActionResult> DeletePlayerAsync(int id)
         {
-            return _toDoApiService.DeletePlayerAsync(id);
+            var result = _toDoApiService.DeletePlayerAsync(id);
+
+            if (result.Result == 0)
+                return NotFound();
+
+            return  NoContent();
         }
 
         // PUT: api/nfl/player/{id}
         [HttpPut("player/{id}")]
         public async Task<IActionResult> PutPlayerAsync(int id, Player player)
         {
-            return await _toDoApiService.PutPlayerAsync(id, player);
+            var updatedPlayer = await _toDoApiService.PutPlayerAsync(id, player);
+
+            if(updatedPlayer.ID == 0)
+            {
+                var message = "Player id does not exist";
+                return BadRequest(message);
+            }
+            
+            return NoContent();
         }
 
         // POST: api/nfl/team/{id}/player
         [HttpPatch("team/{id}/player")]
         public async Task<ActionResult<Player>> AddPlayerToTeamAsync(int id, Player player)
         {
-            return await _toDoApiService.AddPlayerToTeamAsync(id, player);
+            var newPlayer = await _toDoApiService.AddPlayerToTeamAsync(id, player);
+            if(newPlayer.ID == 0)
+            {
+                var Message = "Team does not exist";
+                return BadRequest(Message);
+            }
+            return CreatedAtAction("GetPlayerByIdAsync", new { id = player.ID }, player);
         }
     }
 }

@@ -10,14 +10,14 @@ namespace ToDoApi.Service
         Task<IEnumerable<Player>> GetPlayersAsync();
         Task<Player> GetPlayerByIdAsync(int id);
         Task<List<Player>> GetPlayerByNameAsync(string lastName);
-        Task<IEnumerable<Player>> GetPlayersByTeamAsync(string teamName);
+        Task<List<Player>> GetPlayersByTeamAsync(string teamName);
         Task<IEnumerable<Team>> GetTeamsAsync();
         Task<List<Team>> GetTeamByNameOrLocationAsync(string nameOrLocation);
         Task<Team> GetTeamByIdAsync(int id);
         Task<Team> CreateTeamAsync(Team team);
         Task<Player> CreatePlayerAsync(Player player);
-        Task<IActionResult> DeletePlayerAsync(int id);
-        Task<IActionResult> PutPlayerAsync(int id, Player player);
+        Task<int> DeletePlayerAsync(int id);
+        Task<Player> PutPlayerAsync(int id, Player player);
         Task<Player> AddPlayerToTeamAsync(int id, Player player);
     }
 }

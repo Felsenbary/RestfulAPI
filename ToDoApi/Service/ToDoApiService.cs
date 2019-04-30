@@ -31,28 +31,16 @@ namespace ToDoApi.Service
         public async Task<Player> GetPlayerByIdAsync(int id)
         {
             var player = await _context.Players.FindAsync(id);
-
-            if (player is null || player.ID < 1)
-            {
-                return NotFound();
-            }
-
             return player;
         }
 
         public async Task<List<Player>> GetPlayerByNameAsync(string lastName)
         {
             var players = await _context.Players.Where(x => x.LastName.ToLower() == lastName.ToLower()).ToListAsync();
-
-            if (!players.Any())
-            {
-                return NotFound();
-            }
-
             return players;
         }
 
-        public async Task<IEnumerable<Player>> GetPlayersByTeamAsync(string teamName)
+        public async Task<List<Player>> GetPlayersByTeamAsync(string teamName)
         {
             var Team = await _context.Teams
                 .Where(x => x.Name.Replace(" ", String.Empty).ToLower() == teamName
@@ -60,12 +48,6 @@ namespace ToDoApi.Service
                 .ToLower())
                 .Include(x => x.Players)
                 .FirstOrDefaultAsync();
-
-            if (Team is null)
-            {
-                return NotFound();
-            }
-
             return Team.Players;
         }
 
@@ -93,10 +75,7 @@ namespace ToDoApi.Service
                     .Include(x => x.Players)
                     .ToListAsync();
 
-                if (!teams.Any())
-                {
-                    return NotFound();
-                }
+                return new List<Team> { new Team() };
             }
 
             return teams;
@@ -106,10 +85,7 @@ namespace ToDoApi.Service
         {
             var team = await _context.Teams.FindAsync(id);
 
-            if (team is null || team.ID < 1)
-            {
-                return NotFound();
-            }
+           
 
             await _context.Entry(team).Collection(x => x.Players).LoadAsync();
 
@@ -119,10 +95,9 @@ namespace ToDoApi.Service
         public async Task<Team> CreateTeamAsync(Team team)
         {
             var result = await GetTeamsAsync();
-            var list = result.Value.ToList();
             var dictionary = new Dictionary<string, List<string>>();
 
-            foreach (var item in list)
+            foreach (var item in result)
             {
                 List<string> dicList = new List<string>();
                 if (!dictionary.ContainsKey(item.Name))
@@ -140,13 +115,13 @@ namespace ToDoApi.Service
 
             if (containSameNameAndLocation)
             {
-                var Message = "No two teams should exist with the same name and location";
-                return BadRequest(Message);
+                return new Team();
             }
 
             _context.Teams.Add(team);
             await _context.SaveChangesAsync();
-            return CreatedAtAction("GetTeamByIdAsync", new { id = team.ID }, team);
+
+            return team;
         }
 
         public async Task<Player> CreatePlayerAsync(Player player)
@@ -173,59 +148,54 @@ namespace ToDoApi.Service
 
             if (containSameNameAndLocation)
             {
-                var Message = "A player already exist";
-                return BadRequest(Message);
+                return new Player();
             }
 
             _context.Players.Add(player);
             await _context.SaveChangesAsync();
-            return CreatedAtAction("GetPlayerByIdAsync", new { id = player.ID }, player);
+            return player;
         }
 
-        public async Task<IActionResult> DeletePlayerAsync(int id)
+        public async Task<int> DeletePlayerAsync(int id)
         {
             var player = await _context.Players.FindAsync(id);
 
             if (player is null)
-                return NotFound();
+                return 0;
 
             _context.Players.Remove(player);
             await _context.SaveChangesAsync();
-
-            return NoContent();
+            return 1;
         }
 
-        public async Task<IActionResult> PutPlayerAsync(int id, Player player)
+        public async Task<Player> PutPlayerAsync(int id, Player player)
         {
             try
             {
                 if (id != player.ID)
                 {
-                    var message = "Player id does not exist";
-                    return BadRequest(message);
+                    return new Player();
                 }
 
                 _context.Entry(player).State = EntityState.Modified;
                 await _context.SaveChangesAsync();
 
-                return NoContent();
+                return player;
             }
             catch
             {
-                var message = "Player does not exist";
-                return BadRequest(message);
+                return new Player();
             }
 
         }
 
-        public async Task<HttpResponseMessage> AddPlayerToTeamAsync(int id, Player player)
+        public async Task<Player> AddPlayerToTeamAsync(int id, Player player)
         {
             var team = await _context.Teams.FindAsync(id);
 
             if (team is null)
             {
-                var Message = "Team does not exist";
-                return BadRequest(Message);
+                return new Player();
             }
 
             var result = await GetPlayersAsync();
@@ -255,7 +225,7 @@ namespace ToDoApi.Service
             }
             player.TeamId = id;
             await CreatePlayerAsync(player);
-            return CreatedAtAction("GetPlayerByIdAsync", new { id = player.ID }, player);
+            return player;
         }
 
         private bool ContainsKeyValue(Dictionary<string, List<string>> dictionary, string expectedKey, string expectedValue)
